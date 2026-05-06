@@ -333,7 +333,8 @@ const ComponentGallery = () => {
           </Showcase>
 
           <Showcase title="Resizable">
-            <ResizablePanelGroup direction="horizontal" className="min-h-[100px] rounded-lg border">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            <ResizablePanelGroup {...{ direction: 'horizontal' } as any} className="min-h-[100px] rounded-lg border">
               <ResizablePanel defaultSize={50}>
                 <div className="flex h-full items-center justify-center p-4">
                   <span className="text-sm">Panel A</span>

@@ -1,13 +1,21 @@
-// @ts-nocheck
 import { motion, useInView } from 'framer-motion'
 import { useRef } from 'react'
+import type { ReactNode, CSSProperties } from 'react'
+
+interface ScrollRevealProps {
+  children: ReactNode
+  className?: string
+  delay?: number
+  direction?: 'up' | 'down' | 'left' | 'right'
+  style?: CSSProperties
+}
 
 export default function ScrollReveal({ 
   children, 
   className = '',
   delay = 0,
   direction = 'up'
-}) {
+}: ScrollRevealProps) {
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-80px' })
 

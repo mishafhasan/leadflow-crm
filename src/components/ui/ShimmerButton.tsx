@@ -1,7 +1,14 @@
-// @ts-nocheck
 import { motion } from 'framer-motion'
+import type { ReactNode, MouseEventHandler } from 'react'
 
-export default function ShimmerButton({ children, className = '', onClick, variant = 'primary' }) {
+interface ShimmerButtonProps {
+  children: ReactNode
+  className?: string
+  onClick?: MouseEventHandler<HTMLButtonElement>
+  variant?: 'primary' | 'ghost' | 'outline'
+}
+
+export default function ShimmerButton({ children, className = '', onClick, variant = 'primary' }: ShimmerButtonProps) {
   const baseStyles = 'relative overflow-hidden px-6 py-3 rounded-xl font-medium text-sm transition-all duration-300 inline-flex items-center justify-center gap-2'
   const variants = {
     primary: 'bg-indigo-600 text-white hover:bg-indigo-500',

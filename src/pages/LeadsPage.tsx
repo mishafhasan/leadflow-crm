@@ -15,7 +15,7 @@ import { users } from '@/utils/data';
 const LEADS_PER_PAGE = 5;
 
 export default function LeadsPage() {
-  const { leads, loading, fetchLeads, addLead, updateLead, deleteLead } = useLeads();
+  const { leads, fetchLeads, addLead, updateLead, deleteLead } = useLeads();
   const navigate = useNavigate();
 
   useEffect(() => {

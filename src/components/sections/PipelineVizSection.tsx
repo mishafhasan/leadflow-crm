@@ -91,9 +91,9 @@ export default function PipelineVizSection({ publicStats }: { publicStats: any }
             <ScrollReveal key={stat.label} delay={i * 0.1}>
               <div className="glass p-6 text-center">
                 <div className="text-3xl md:text-4xl font-bold text-slate-50 mb-1">
-                  <AnimatedCounter 
-                    target={stat.value} 
-                    prefix={stat.prefix} 
+                  <AnimatedCounter
+                    target={stat.value}
+                    prefix={stat.prefix}
                     suffix={stat.suffix}
                     decimals={stat.decimals}
                   />

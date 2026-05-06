@@ -6,7 +6,7 @@ import ShimmerButton from '../ui/ShimmerButton'
 import { Link } from 'react-router-dom'
 
 export default function HeroSection() {
-  const titleWords = 'Close More Deals with LeadFlow'.split(' ')
+  const titleWords = 'Grow Your Business with LeadFlow'.split(' ')
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -17,7 +17,7 @@ export default function HeroSection() {
           {titleWords.map((word, i) => (
             <motion.span
               key={i}
-              className="inline-block mr-[0.25em]"
+              className={`inline-block mr-[0.25em]${word === 'LeadFlow' || word === 'Grow' ? ' text-gradient' : ''}`}
               initial={{ opacity: 0, y: 100 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{

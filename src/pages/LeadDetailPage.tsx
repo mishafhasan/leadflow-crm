@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Pencil, Trash2, Send, Clock, DollarSign, Mail, Phone, Building2, User, Tag } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
-import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/ActionButton';
 import Badge from '@/components/ui/StatusBadge';
 import Card from '@/components/ui/InfoCard';
@@ -16,8 +15,6 @@ export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { updateLead, deleteLead, getLeadNotes, addNote, getLeadById } = useLeads();
-  const { user } = useAuth();
-
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
