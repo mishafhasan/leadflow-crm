@@ -83,5 +83,21 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4"
-  }
+  },
+  "description": "A modern CRM application built with React and TypeScript.",
+  "main": "eslint.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mishafhasan/leadflow-crm.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mishafhasan/leadflow-crm/issues"
+  },
+  "homepage": "https://github.com/mishafhasan/leadflow-crm#readme"
 }
