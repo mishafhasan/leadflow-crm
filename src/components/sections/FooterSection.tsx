@@ -79,10 +79,8 @@ export default function FooterSection() {
             &copy; {new Date().getFullYear()} LeadFlow CRM. All rights reserved.
           </p>
           <div className="flex items-center gap-2 text-xs text-slate-600">
-            <span>Made with</span>
-            <span className="text-indigo-400 font-medium">React Three Fiber</span>
-            <span>&</span>
-            <span className="text-indigo-400 font-medium">Framer Motion</span>
+            <span>Made by: </span>
+            <a href="https://github.com/mishafhasan" target="_blank" rel="noopener noreferrer" className="text-indigo-400 font-medium">Mishaf Hasan</a>
           </div>
         </div>
       </div>
