@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useInView } from 'framer-motion'
 
-export default function AnimatedCounter({ target, prefix = '', suffix = '', duration = 2000 }) {
+export default function AnimatedCounter({ target, prefix = '', suffix = '', duration = 2000, decimals = 0 }) {
   const [count, setCount] = useState(0)
   const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-100px' })
@@ -16,7 +16,10 @@ export default function AnimatedCounter({ target, prefix = '', suffix = '', dura
         const elapsed = Date.now() - startTime
         const progress = Math.min(elapsed / duration, 1)
         const easeOut = 1 - Math.pow(1 - progress, 3)
-        setCount(Math.floor(easeOut * target))
+        
+        const currentCount = easeOut * target
+        setCount(currentCount)
+        
         if (progress < 1) requestAnimationFrame(animate)
       }
       requestAnimationFrame(animate)
@@ -25,7 +28,10 @@ export default function AnimatedCounter({ target, prefix = '', suffix = '', dura
 
   return (
     <span ref={ref} className="tabular-nums relative">
-      {prefix}{count.toLocaleString()}{suffix}
+      {prefix}{count.toLocaleString(undefined, { 
+        minimumFractionDigits: decimals, 
+        maximumFractionDigits: decimals 
+      })}{suffix}
     </span>
   )
 }

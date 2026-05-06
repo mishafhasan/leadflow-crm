@@ -6,7 +6,7 @@ const BASE_SELECT = `
     l.id, l.lead_name, l.company_name, l.email, l.phone,
     l.lead_source, l.status, l.deal_value,
     l.created_at, l.updated_at,
-    u.id AS assigned_to_id, u.name AS assigned_to_name
+    l.assigned_to, u.name AS assigned_to_name
   FROM leads l
   LEFT JOIN users u ON l.assigned_to = u.id
 `;

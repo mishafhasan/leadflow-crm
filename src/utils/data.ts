@@ -1,9 +1,9 @@
 import type { User, Lead, Note } from '@/types';
 
 export const users: User[] = [
-  { id: 'u1', name: 'Admin User', email: 'admin@example.com', role: 'admin' },
-  { id: 'u2', name: 'Kasun Perera', email: 'kasun@leadflow.lk', role: 'salesperson' },
-  { id: 'u3', name: 'Dasun Silva', email: 'dasun@leadflow.lk', role: 'salesperson' }
+  { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Admin User', email: 'admin@example.com', role: 'admin' },
+  { id: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22', name: 'Kasun Perera', email: 'kasun@leadflow.lk', role: 'salesperson' },
+  { id: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', name: 'Dasun Silva', email: 'dasun@leadflow.lk', role: 'salesperson' }
 ];
 
 export const initialLeads: Lead[] = [

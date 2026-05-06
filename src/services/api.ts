@@ -71,3 +71,8 @@ export const notesApi = {
 export const dashboardApi = {
     getStats: () => request<any>('/api/dashboard/stats'),
 };
+
+// Public (no auth required)
+export const publicApi = {
+    getStats: () => request<any>('/api/public/stats'),
+};

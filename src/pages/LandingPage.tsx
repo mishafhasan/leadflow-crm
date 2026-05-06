@@ -9,13 +9,20 @@ import TestimonialsSection from '../components/sections/TestimonialsSection'
 import PricingSection from '../components/sections/PricingSection'
 import CTASection from '../components/sections/CTASection'
 import FooterSection from '../components/sections/FooterSection'
+import { publicApi } from '../services/api'
 
 export default function LandingPage() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [publicStats, setPublicStats] = useState<any>(null)
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 500)
-    return () => clearTimeout(timer)
+    // Fetch real stats from backend, then show the page
+    publicApi.getStats()
+      .then(data => setPublicStats(data))
+      .catch(() => {}) // fail silently — landing page still shows with fallback data
+      .finally(() => {
+        setTimeout(() => setIsLoaded(true), 300)
+      })
   }, [])
 
   if (!isLoaded) {
@@ -31,10 +38,10 @@ export default function LandingPage() {
       <LandingNavbar />
       <main>
         <HeroSection />
-        <PipelineVizSection />
+        <PipelineVizSection publicStats={publicStats} />
         <FeaturesSection />
         <HowItWorksSection />
-        <DemoSection />
+        <DemoSection publicStats={publicStats} />
         <TestimonialsSection />
         <PricingSection />
         <CTASection />

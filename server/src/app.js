@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const publicRoutes = require('./routes/public.routes');
 
 // Import route handlers
 const authRoutes = require('./routes/auth.routes');
@@ -21,6 +22,9 @@ app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
 }));
+
+// Mount public routes BEFORE auth-protected routes
+app.use('/api/public', publicRoutes);
 
 // Parse incoming JSON request bodies
 app.use(express.json());

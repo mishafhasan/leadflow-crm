@@ -4,15 +4,32 @@ import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
 import ScrollReveal from '../ui/ScrollReveal'
 import { TrendingUp, Users, DollarSign, Target } from 'lucide-react'
 
-const FLOATING_CARDS = [
-  { icon: TrendingUp, label: 'Pipeline Growth', value: '+24%', color: 'text-emerald-400', bg: 'bg-emerald-500/10', x: -180, y: -100, delay: 0 },
-  { icon: Users, label: 'Active Leads', value: '142', color: 'text-blue-400', bg: 'bg-blue-500/10', x: 200, y: -80, delay: 0.5 },
-  { icon: DollarSign, label: 'Deal Value', value: 'Rs.840M', color: 'text-amber-400', bg: 'bg-amber-500/10', x: -200, y: 100, delay: 1 },
-  { icon: Target, label: 'Win Rate', value: '38%', color: 'text-purple-400', bg: 'bg-purple-500/10', x: 180, y: 120, delay: 1.5 },
+// Floating cards — values will be filled from real API data
+const FLOATING_CARD_TEMPLATES = [
+  { icon: TrendingUp, label: 'Pipeline Growth', color: 'text-emerald-400', bg: 'bg-emerald-500/10', x: -180, y: -100, delay: 0 },
+  { icon: Users, label: 'Active Leads', color: 'text-blue-400', bg: 'bg-blue-500/10', x: 200, y: -80, delay: 0.5 },
+  { icon: DollarSign, label: 'Deal Value', color: 'text-amber-400', bg: 'bg-amber-500/10', x: -200, y: 100, delay: 1 },
+  { icon: Target, label: 'Win Rate', color: 'text-purple-400', bg: 'bg-purple-500/10', x: 180, y: 120, delay: 1.5 },
 ]
 
-export default function DemoSection() {
+export default function DemoSection({ publicStats }: { publicStats: any }) {
   const containerRef = useRef(null)
+  const stats = publicStats?.stats
+  const recentLeads = publicStats?.recent_leads || []
+  const formatVal = (n: number) => {
+    if (n >= 1_000_000) return `Rs.${(n / 1_000_000).toFixed(0)}M`
+    if (n >= 1_000) return `Rs.${(n / 1_000).toFixed(0)}K`
+    return `Rs.${n}`
+  }
+  const FLOATING_CARDS = FLOATING_CARD_TEMPLATES.map((t, i) => ({
+    ...t,
+    value: [
+      '+24%',
+      String(stats?.total_leads ?? 142),
+      formatVal(stats?.total_pipeline ?? 840000000),
+      `${stats?.win_rate ?? 38}%`,
+    ][i],
+  }))
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
 
@@ -95,10 +112,10 @@ export default function DemoSection() {
                 {/* Stat row */}
                 <div className="grid grid-cols-4 gap-3 mb-6">
                   {[
-                    { label: 'Total Leads', value: '361', color: 'text-blue-400' },
-                    { label: 'Won', value: '28', color: 'text-emerald-400' },
-                    { label: 'Pipeline', value: 'Rs.840M', color: 'text-amber-400' },
-                    { label: 'Win Rate', value: '38%', color: 'text-purple-400' },
+                    { label: 'Total Leads', value: String(stats?.total_leads ?? '—'), color: 'text-blue-400' },
+                    { label: 'Won', value: String(stats?.won_count ?? '—'), color: 'text-emerald-400' },
+                    { label: 'Pipeline', value: formatVal(stats?.total_pipeline ?? 0), color: 'text-amber-400' },
+                    { label: 'Win Rate', value: `${stats?.win_rate ?? 0}%`, color: 'text-purple-400' },
                   ].map((stat) => (
                     <div key={stat.label} className="glass p-3 text-center">
                       <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -133,14 +150,19 @@ export default function DemoSection() {
 
                 {/* Lead rows */}
                 <div className="space-y-2">
-                  {[
-                    { name: 'Dialog Axiata', status: 'Qualified', color: 'bg-indigo-500', value: 'Rs.13.5M' },
-                    { name: 'MAS Holdings', status: 'Proposal Sent', color: 'bg-purple-500', value: 'Rs.36.0M' },
-                    { name: 'John Keells', status: 'New', color: 'bg-amber-500', value: 'Rs.23.4M' },
-                    { name: 'Bank of Ceylon', status: 'Contacted', color: 'bg-blue-500', value: 'Rs.9.6M' },
-                  ].map((lead, i) => (
+                {(recentLeads.length > 0 ? recentLeads : [
+                  { company_name: 'Dialog Axiata', status: 'Qualified', deal_value: 7500000 },
+                  { company_name: 'MAS Holdings', status: 'Proposal Sent', deal_value: 13500000 },
+                  { company_name: 'John Keells', status: 'Won', deal_value: 18000000 },
+                  { company_name: 'Bank of Ceylon', status: 'New', deal_value: 4500000 },
+                ]).map((lead: any, i: number) => {
+                  const STATUS_COLORS: Record<string, string> = {
+                    'New': 'bg-amber-500', 'Contacted': 'bg-blue-500', 'Qualified': 'bg-indigo-500',
+                    'Proposal Sent': 'bg-purple-500', 'Won': 'bg-emerald-500', 'Lost': 'bg-red-500',
+                  }
+                  return (
                     <motion.div
-                      key={lead.name}
+                      key={lead.company_name}
                       className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                       initial={{ opacity: 0, x: -20 }}
                       whileInView={{ opacity: 1, x: 0 }}
@@ -148,17 +170,18 @@ export default function DemoSection() {
                       viewport={{ once: true }}
                     >
                       <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
-                        {lead.name.charAt(0)}
+                        {lead.company_name.charAt(0)}
                       </div>
                       <div className="flex-1">
-                        <div className="text-sm text-slate-200">{lead.name}</div>
+                        <div className="text-sm text-slate-200">{lead.company_name}</div>
                       </div>
-                      <div className={`px-2 py-0.5 rounded-full text-[10px] ${lead.color} text-white`}>
+                      <div className={`px-2 py-0.5 rounded-full text-[10px] ${STATUS_COLORS[lead.status] || 'bg-slate-500'} text-white`}>
                         {lead.status}
                       </div>
-                      <div className="text-sm text-slate-300 font-mono">{lead.value}</div>
+                      <div className="text-sm text-slate-300 font-mono">{formatVal(lead.deal_value)}</div>
                     </motion.div>
-                  ))}
+                  )
+                })}
                 </div>
               </div>
             </div>
