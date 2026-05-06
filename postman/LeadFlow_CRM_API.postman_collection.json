@@ -1,0 +1,745 @@
+{
+	"info": {
+		"_postman_id": "leadflow-crm-api-collection",
+		"name": "LeadFlow CRM API",
+		"description": "Complete API test suite for LeadFlow CRM backend. Run requests in order — Test 2 (Login) auto-saves the JWT token, and Test 5 (Create Lead) auto-saves the lead ID for subsequent tests.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Test 1 — Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": ["{{base_url}}"],
+					"path": ["health"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has status ok', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.status).to.eql('ok');",
+							"});",
+							"",
+							"pm.test('Response has timestamp', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.timestamp).to.be.a('string');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 2 — Login (saves token)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"password123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["api", "auth", "login"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Login is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Token is returned', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.token).to.be.a('string').and.not.empty;",
+							"});",
+							"",
+							"pm.test('User object is returned', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.user).to.be.an('object');",
+							"    pm.expect(json.user.id).to.be.a('string');",
+							"    pm.expect(json.user.name).to.be.a('string');",
+							"    pm.expect(json.user.email).to.be.a('string');",
+							"    pm.expect(json.user.role).to.be.a('string');",
+							"});",
+							"",
+							"// ── AUTO-SAVE: Store token for all subsequent requests ──",
+							"const json = pm.response.json();",
+							"if (json.success && json.token) {",
+							"    pm.environment.set('token', json.token);",
+							"    console.log('✅ Token saved to environment');",
+							"}"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 3 — Get Current User",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/auth/me",
+					"host": ["{{base_url}}"],
+					"path": ["api", "auth", "me"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('User object has required fields', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.user).to.be.an('object');",
+							"    pm.expect(json.user).to.have.property('id');",
+							"    pm.expect(json.user).to.have.property('name');",
+							"    pm.expect(json.user).to.have.property('email');",
+							"    pm.expect(json.user).to.have.property('role');",
+							"});",
+							"",
+							"pm.test('User email matches login email', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.user.email).to.eql('admin@example.com');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 4 — Get All Leads",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/leads",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Leads array is present', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.leads).to.be.an('array');",
+							"});",
+							"",
+							"pm.test('Pagination fields are present', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.property('total');",
+							"    pm.expect(json).to.have.property('page');",
+							"    pm.expect(json).to.have.property('totalPages');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 5 — Create a Lead (saves lead_id)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"lead_name\": \"Chamuditha Samarawickrama\",\n    \"company_name\": \"Dialog Axiata\",\n    \"email\": \"chamuditha@dialog.lk\",\n    \"phone\": \"+94 77 123 4567\",\n    \"lead_source\": \"Website\",\n    \"status\": \"New\",\n    \"deal_value\": 7500000\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/leads",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Lead created successfully', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Lead has correct fields', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.lead).to.be.an('object');",
+							"    pm.expect(json.lead.lead_name).to.eql('Chamuditha Samarawickrama');",
+							"    pm.expect(json.lead.company_name).to.eql('Dialog Axiata');",
+							"    pm.expect(json.lead.email).to.eql('chamuditha@dialog.lk');",
+							"    pm.expect(json.lead.phone).to.eql('+94 77 123 4567');",
+							"    pm.expect(json.lead.lead_source).to.eql('Website');",
+							"    pm.expect(json.lead.status).to.eql('New');",
+							"    pm.expect(json.lead.deal_value).to.eql(7500000);",
+							"});",
+							"",
+							"// ── AUTO-SAVE: Store lead ID for subsequent requests ──",
+							"const json = pm.response.json();",
+							"if (json.success && json.lead && json.lead.id) {",
+							"    pm.environment.set('lead_id', json.lead.id);",
+							"    console.log('✅ Lead ID saved to environment: ' + json.lead.id);",
+							"}"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 6 — Get Single Lead",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Lead object has all fields', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.lead).to.be.an('object');",
+							"    pm.expect(json.lead).to.have.property('id');",
+							"    pm.expect(json.lead).to.have.property('lead_name');",
+							"    pm.expect(json.lead).to.have.property('company_name');",
+							"    pm.expect(json.lead).to.have.property('email');",
+							"    pm.expect(json.lead).to.have.property('phone');",
+							"    pm.expect(json.lead).to.have.property('lead_source');",
+							"    pm.expect(json.lead).to.have.property('status');",
+							"    pm.expect(json.lead).to.have.property('deal_value');",
+							"    pm.expect(json.lead).to.have.property('created_at');",
+							"    pm.expect(json.lead).to.have.property('updated_at');",
+							"});",
+							"",
+							"pm.test('Lead ID matches saved ID', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.lead.id).to.eql(pm.environment.get('lead_id'));",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 7 — Update Lead Status",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"status\": \"Qualified\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Update is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Lead status is now Qualified', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.lead.status).to.eql('Qualified');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 8 — Add a Note",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"content\": \"Initial call went well. Interested in enterprise plan.\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}/notes",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}", "notes"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 201', function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test('Note created successfully', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Note has content', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.note).to.be.an('object');",
+							"    pm.expect(json.note.content).to.eql('Initial call went well. Interested in enterprise plan.');",
+							"});",
+							"",
+							"pm.test('Note has ID and timestamps', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.note).to.have.property('id');",
+							"    pm.expect(json.note).to.have.property('created_at');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 9 — Get Notes for Lead",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}/notes",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}", "notes"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Notes array is present and non-empty', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.notes).to.be.an('array');",
+							"    pm.expect(json.notes.length).to.be.at.least(1);",
+							"});",
+							"",
+							"pm.test('Note contains expected content', function () {",
+							"    const json = pm.response.json();",
+							"    const note = json.notes[0];",
+							"    pm.expect(note.content).to.include('Initial call went well');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 10 — Dashboard Stats",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/dashboard/stats",
+					"host": ["{{base_url}}"],
+					"path": ["api", "dashboard", "stats"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Stats object has all required fields', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.stats).to.be.an('object');",
+							"    pm.expect(json.stats).to.have.property('total_leads');",
+							"    pm.expect(json.stats).to.have.property('new_leads');",
+							"    pm.expect(json.stats).to.have.property('contacted_leads');",
+							"    pm.expect(json.stats).to.have.property('qualified_leads');",
+							"    pm.expect(json.stats).to.have.property('proposal_sent');",
+							"    pm.expect(json.stats).to.have.property('won_leads');",
+							"    pm.expect(json.stats).to.have.property('lost_leads');",
+							"    pm.expect(json.stats).to.have.property('total_pipeline_value');",
+							"    pm.expect(json.stats).to.have.property('total_won_value');",
+							"});",
+							"",
+							"pm.test('Total leads is at least 1 (we created one)', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.stats.total_leads).to.be.at.least(1);",
+							"});",
+							"",
+							"pm.test('Qualified leads is at least 1', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.stats.qualified_leads).to.be.at.least(1);",
+							"});",
+							"",
+							"pm.test('Pipeline and recent_leads arrays exist', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json).to.have.property('pipeline');",
+							"    pm.expect(json.pipeline).to.be.an('array');",
+							"    pm.expect(json).to.have.property('recent_leads');",
+							"    pm.expect(json.recent_leads).to.be.an('array');",
+							"    pm.expect(json).to.have.property('top_salespeople');",
+							"    pm.expect(json.top_salespeople).to.be.an('array');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Bonus — Delete Lead",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Lead deleted successfully', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"    pm.expect(json.message).to.eql('Lead deleted successfully');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Negative — Login with Wrong Password",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"wrongpassword\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/login",
+					"host": ["{{base_url}}"],
+					"path": ["api", "auth", "login"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 401', function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test('Error message is Invalid credentials', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.false;",
+							"    pm.expect(json.message).to.eql('Invalid credentials');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Negative — Access Protected Route Without Token",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/leads",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 401', function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test('Error message is No token provided', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.false;",
+							"    pm.expect(json.message).to.eql('No token provided');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Negative — Get Non-existent Lead",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/leads/00000000-0000-0000-0000-000000000000",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "00000000-0000-0000-0000-000000000000"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test('Error message is Lead not found', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.false;",
+							"    pm.expect(json.message).to.eql('Lead not found');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Negative — Create Lead Without Name",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"company_name\": \"No Name Corp\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/leads",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"pm.test('Error message is Lead name is required', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.false;",
+							"    pm.expect(json.message).to.eql('Lead name is required');",
+							"});"
+						]
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5000"
+		}
+	]
+}
