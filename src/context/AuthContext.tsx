@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { User } from '@/types';
-import { users, VALID_LOGIN } from '@/utils/data';
+import { authApi } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -17,30 +17,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = useCallback((email: string, password: string): boolean => {
-    if (email === VALID_LOGIN.email && password === VALID_LOGIN.password) {
-      const foundUser = users.find(u => u.email === email);
-      if (foundUser) {
-        setUser(foundUser);
-        localStorage.setItem('leadflow_user', JSON.stringify(foundUser));
-        return true;
-      }
+  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
+    try {
+      const data = await authApi.login(email, password);
+      // Store the token separately — api.ts reads it automatically for future requests
+      localStorage.setItem('leadflow_token', data.token);
+      localStorage.setItem('leadflow_user', JSON.stringify(data.user));
+      setUser(data.user);
+      return true;
+    } catch (err) {
+      console.error('Login failed:', err);
+      return false;
     }
-    return false;
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
+    localStorage.removeItem('leadflow_token');
     localStorage.removeItem('leadflow_user');
   }, []);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      logout,
-      isAuthenticated: !!user,
-    }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

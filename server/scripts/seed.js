@@ -1,92 +1,102 @@
 // Seed script for LeadFlow CRM database
 // Usage: node scripts/seed.js
+// Mirrors src/utils/data.ts dummy data into Supabase
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const db = require('../src/config/db');
+
+// Fixed UUIDs — keeps FK references consistent across re-runs
+const USER_IDS = {
+  admin: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  kasun: 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+  dasun: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
+};
+
+const LEAD_IDS = {
+  chamuditha: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  nilantha: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a02',
+  saman: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a03',
+  amali: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a04',
+  ruwanthi: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a05',
+  dinesh: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a06',
+};
+
+const NOTE_IDS = {
+  n1: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a01',
+  n2: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a02',
+  n3: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a03',
+  n4: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a04',
+};
 
 async function seed() {
   console.log('🌱 Seeding LeadFlow CRM database...\n');
 
   try {
-    // ── 1. Seed admin user ─────────────────────────────────────
-    const adminPasswordHash = bcrypt.hashSync('password123', 10);
+    // ── 1. Clean slate (reverse FK order) ────────────────────────
+    await db.query('DELETE FROM notes');
+    await db.query('DELETE FROM leads');
+    await db.query('DELETE FROM users');
+    console.log('✅ Cleared existing data (notes, leads, users)');
 
-    const userResult = await db.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password
-       RETURNING id, name, email, role`,
-      ['Admin User', 'admin@example.com', adminPasswordHash, 'admin']
-    );
-    const adminUser = userResult.rows[0];
-    console.log('✅ Admin user:', adminUser.email, '(password: password123)');
+    // ── 2. Insert users with fixed UUIDs ──────────────────────────
+    const passwordHash = bcrypt.hashSync('password123', 10);
 
-    // ── 2. Seed salesperson ────────────────────────────────────
-    const salesPasswordHash = bcrypt.hashSync('sales123', 10);
-
-    const salesResult = await db.query(
-      `INSERT INTO users (name, email, password, role)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (email) DO UPDATE SET password = EXCLUDED.password
-       RETURNING id, name, email, role`,
-      ['Jane Sales', 'jane@example.com', salesPasswordHash, 'salesperson']
-    );
-    const salesUser = salesResult.rows[0];
-    console.log('✅ Sales user:', salesUser.email, '(password: sales123)');
-
-    // ── 3. Seed sample leads ───────────────────────────────────
-    const leads = [
-      { name: 'Alex Rivera', company: 'TechVentures Inc', email: 'alex@techventures.io', phone: '+1-555-0101', source: 'Website', status: 'New', value: 12000 },
-      { name: 'Sarah Chen', company: 'DataFlow Solutions', email: 'sarah@dataflow.com', phone: '+1-555-0102', source: 'LinkedIn', status: 'Contacted', value: 25000 },
-      { name: 'Marcus Johnson', company: 'CloudNine Systems', email: 'marcus@cloudnine.tech', phone: '+1-555-0103', source: 'Referral', status: 'Qualified', value: 45000 },
-      { name: 'Emily Watson', company: 'GreenLeaf Corp', email: 'emily@greenleaf.co', phone: '+1-555-0104', source: 'Cold Email', status: 'Proposal Sent', value: 68000 },
-      { name: 'David Kim', company: 'Stellar Analytics', email: 'david@stellaranalytics.io', phone: '+1-555-0105', source: 'Event', status: 'Won', value: 35000 },
-      { name: 'Rachel Torres', company: 'BlueSky Digital', email: 'rachel@blueskydigital.com', phone: '+1-555-0106', source: 'Website', status: 'Won', value: 52000 },
-      { name: 'James Mitchell', company: 'Omega Partners', email: 'james@omegapartners.com', phone: '+1-555-0107', source: 'LinkedIn', status: 'Lost', value: 18000 },
-      { name: 'Lisa Park', company: 'InnoVate Labs', email: 'lisa@innovatelabs.io', phone: '+1-555-0108', source: 'Referral', status: 'New', value: 30000 },
+    const users = [
+      { id: USER_IDS.admin, name: 'Admin User', email: 'admin@example.com', role: 'admin', created_at: '2026-01-01T00:00:00Z' },
+      { id: USER_IDS.kasun, name: 'Kasun Perera', email: 'kasun@leadflow.lk', role: 'salesperson', created_at: '2026-01-01T00:00:00Z' },
+      { id: USER_IDS.dasun, name: 'Dasun Silva', email: 'dasun@leadflow.lk', role: 'salesperson', created_at: '2026-01-01T00:00:00Z' },
     ];
 
-    // Clear existing leads first (cascade deletes notes too)
-    await db.query('DELETE FROM leads');
-
-    for (const lead of leads) {
-      const assignedTo = lead.status === 'Won' || lead.status === 'Proposal Sent'
-        ? adminUser.id
-        : salesUser.id;
-
+    for (const u of users) {
       await db.query(
-        `INSERT INTO leads (lead_name, company_name, email, phone, lead_source, assigned_to, status, deal_value)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [lead.name, lead.company, lead.email, lead.phone, lead.source, assignedTo, lead.status, lead.value]
+        `INSERT INTO users (id, name, email, password, role, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [u.id, u.name, u.email, passwordHash, u.role, u.created_at]
       );
     }
-    console.log(`✅ ${leads.length} sample leads created`);
+    console.log(`✅ ${users.length} users created (password: password123)`);
 
-    // ── 4. Seed sample notes ───────────────────────────────────
-    const { rows: allLeads } = await db.query('SELECT id, lead_name FROM leads');
-
-    const sampleNotes = [
-      { leadName: 'Sarah Chen', content: 'Had an introductory call. Very interested in our enterprise plan. Follow up next week.' },
-      { leadName: 'Emily Watson', content: 'Proposal sent for the full suite. Decision expected by end of month.' },
-      { leadName: 'David Kim', content: 'Deal closed! Onboarding starts Monday.' },
-      { leadName: 'Marcus Johnson', content: 'Needs custom integration with their existing CRM. Sent technical docs.' },
+    // ── 3. Insert leads with fixed UUIDs ──────────────────────────
+    const leads = [
+      { id: LEAD_IDS.chamuditha, name: 'Chamuditha Samarawickrama', company: 'Dialog Axiata', email: 'chamuditha@dialog.lk', phone: '+94 77 123 4567', source: 'Website', assigned_to: USER_IDS.kasun, status: 'Qualified', value: 7500000, created_at: '2026-04-28T10:00:00Z', updated_at: '2026-05-01T14:30:00Z' },
+      { id: LEAD_IDS.nilantha, name: 'Nilantha Perera', company: 'MAS Holdings', email: 'nilantha@masholdings.lk', phone: '+94 71 234 5678', source: 'LinkedIn', assigned_to: USER_IDS.dasun, status: 'Proposal Sent', value: 13500000, created_at: '2026-04-25T09:00:00Z', updated_at: '2026-04-30T11:00:00Z' },
+      { id: LEAD_IDS.saman, name: 'Saman Silva', company: 'John Keells Holdings', email: 'saman@jkh.lk', phone: '+94 70 345 6789', source: 'Referral', assigned_to: USER_IDS.kasun, status: 'Won', value: 18000000, created_at: '2026-04-20T08:00:00Z', updated_at: '2026-04-22T16:00:00Z' },
+      { id: LEAD_IDS.amali, name: 'Amali Fernando', company: 'Bank of Ceylon', email: 'amali@boc.lk', phone: '+94 76 456 7890', source: 'Cold Email', assigned_to: USER_IDS.dasun, status: 'New', value: 4500000, created_at: '2026-05-04T13:00:00Z', updated_at: '2026-05-04T13:00:00Z' },
+      { id: LEAD_IDS.ruwanthi, name: 'Ruwanthi Jayasekara', company: 'Hayleys PLC', email: 'ruwanthi@hayleys.lk', phone: '+94 72 567 8901', source: 'Event', assigned_to: USER_IDS.kasun, status: 'Contacted', value: 9600000, created_at: '2026-05-02T10:00:00Z', updated_at: '2026-05-03T09:00:00Z' },
+      { id: LEAD_IDS.dinesh, name: 'Dinesh Gunawardena', company: 'Hemas Holdings', email: 'dinesh@hemas.lk', phone: '+94 78 678 9012', source: 'Website', assigned_to: USER_IDS.dasun, status: 'Lost', value: 5400000, created_at: '2026-03-15T11:00:00Z', updated_at: '2026-04-01T10:00:00Z' },
     ];
 
-    for (const note of sampleNotes) {
-      const lead = allLeads.find(l => l.lead_name === note.leadName);
-      if (lead) {
-        await db.query(
-          `INSERT INTO notes (lead_id, content, created_by) VALUES ($1, $2, $3)`,
-          [lead.id, note.content, adminUser.id]
-        );
-      }
+    for (const l of leads) {
+      await db.query(
+        `INSERT INTO leads (id, lead_name, company_name, email, phone, lead_source, assigned_to, status, deal_value, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [l.id, l.name, l.company, l.email, l.phone, l.source, l.assigned_to, l.status, l.value, l.created_at, l.updated_at]
+      );
     }
-    console.log(`✅ ${sampleNotes.length} sample notes created`);
+    console.log(`✅ ${leads.length} leads created`);
+
+    // ── 4. Insert notes with fixed UUIDs ──────────────────────────
+    const notes = [
+      { id: NOTE_IDS.n1, lead_id: LEAD_IDS.chamuditha, content: 'Initial call went well. Interested in enterprise plan.', created_by: USER_IDS.kasun, created_at: '2026-04-29T10:00:00Z' },
+      { id: NOTE_IDS.n2, lead_id: LEAD_IDS.chamuditha, content: 'Sent follow-up email with pricing details.', created_by: USER_IDS.kasun, created_at: '2026-05-01T14:30:00Z' },
+      { id: NOTE_IDS.n3, lead_id: LEAD_IDS.nilantha, content: 'Demo scheduled for next Tuesday.', created_by: USER_IDS.dasun, created_at: '2026-04-28T09:00:00Z' },
+      { id: NOTE_IDS.n4, lead_id: LEAD_IDS.saman, content: 'Contract signed! Deal closed.', created_by: USER_IDS.kasun, created_at: '2026-04-22T16:00:00Z' },
+    ];
+
+    for (const n of notes) {
+      await db.query(
+        `INSERT INTO notes (id, lead_id, content, created_by, created_at)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [n.id, n.lead_id, n.content, n.created_by, n.created_at]
+      );
+    }
+    console.log(`✅ ${notes.length} notes created`);
 
     console.log('\n🎉 Seeding complete!');
     console.log('\nLogin credentials:');
-    console.log('  Admin:  admin@example.com / password123');
-    console.log('  Sales:  jane@example.com  / sales123');
+    console.log('  Admin:      admin@example.com   / password123');
+    console.log('  Kasun:      kasun@leadflow.lk    / kasun123');
+    console.log('  Dasun:      dasun@leadflow.lk    / dasun123');
 
     process.exit(0);
   } catch (err) {

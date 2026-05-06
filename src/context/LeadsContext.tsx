@@ -1,101 +1,75 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { Lead, Note } from '@/types';
-import { initialLeads, initialNotes, users } from '@/utils/data';
+import { leadsApi, notesApi } from '@/services/api';
 
 interface LeadsContextType {
   leads: Lead[];
-  notes: Note[];
-  addLead: (lead: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) => Lead;
-  updateLead: (id: string, data: Partial<Lead>) => Lead | null;
-  deleteLead: (id: string) => boolean;
-  addNote: (leadId: string, content: string, userId: string) => Note;
-  getLeadNotes: (leadId: string) => Note[];
-  getLeadById: (id: string) => Lead | undefined;
-  getUserName: (userId: string) => string;
+  loading: boolean;
+  fetchLeads: (filters?: Record<string, string>) => Promise<void>;
+  addLead: (data: Omit<Lead, 'id' | 'created_at' | 'updated_at'>) => Promise<Lead>;
+  updateLead: (id: string, data: Partial<Lead>) => Promise<Lead | null>;
+  deleteLead: (id: string) => Promise<boolean>;
+  addNote: (leadId: string, content: string) => Promise<Note>;
+  getLeadNotes: (leadId: string) => Promise<Note[]>;
+  getLeadById: (id: string) => Promise<Lead | undefined>;
 }
 
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined);
 
-let leadIdCounter = initialLeads.length + 1;
-let noteIdCounter = initialNotes.length + 1;
-
 export function LeadsProvider({ children }: { children: React.ReactNode }) {
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [notes, setNotes] = useState<Note[]>(initialNotes);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const getUserName = useCallback((userId: string): string => {
-    return users.find(u => u.id === userId)?.name || 'Unknown';
+  const fetchLeads = useCallback(async (filters?: Record<string, string>) => {
+    setLoading(true);
+    try {
+      const data = await leadsApi.getAll(filters);
+      setLeads(data.leads);
+    } catch (err) {
+      console.error('Failed to fetch leads:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const addLead = useCallback((leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Lead => {
-    const now = new Date().toISOString();
-    const newLead: Lead = {
-      ...leadData,
-      id: `l${leadIdCounter++}`,
-      created_at: now,
-      updated_at: now,
-    };
-    setLeads(prev => [newLead, ...prev]);
-    return newLead;
+  const addLead = useCallback(async (leadData: Omit<Lead, 'id' | 'created_at' | 'updated_at'>): Promise<Lead> => {
+    const data = await leadsApi.create(leadData);
+    setLeads(prev => [data.lead, ...prev]);
+    return data.lead;
   }, []);
 
-  const updateLead = useCallback((id: string, data: Partial<Lead>): Lead | null => {
-    let updated: Lead | null = null;
-    setLeads(prev => prev.map(l => {
-      if (l.id === id) {
-        updated = { ...l, ...data, updated_at: new Date().toISOString() };
-        return updated;
-      }
-      return l;
-    }));
-    return updated;
+  const updateLead = useCallback(async (id: string, leadData: Partial<Lead>): Promise<Lead | null> => {
+    const data = await leadsApi.update(id, leadData);
+    setLeads(prev => prev.map(l => l.id === id ? data.lead : l));
+    return data.lead;
   }, []);
 
-  const deleteLead = useCallback((id: string): boolean => {
-    const exists = leads.some(l => l.id === id);
-    if (!exists) return false;
+  const deleteLead = useCallback(async (id: string): Promise<boolean> => {
+    await leadsApi.delete(id);
     setLeads(prev => prev.filter(l => l.id !== id));
-    setNotes(prev => prev.filter(n => n.lead_id !== id));
     return true;
-  }, [leads]);
+  }, []);
 
-  const addNote = useCallback((leadId: string, content: string, userId: string): Note => {
-    const newNote: Note = {
-      id: `n${noteIdCounter++}`,
-      lead_id: leadId,
-      content,
-      created_by: userId,
-      created_at: new Date().toISOString(),
-    };
-    setNotes(prev => [newNote, ...prev]);
-    return { ...newNote, created_by_name: getUserName(userId) };
-  }, [getUserName]);
+  const getLeadById = useCallback(async (id: string): Promise<Lead | undefined> => {
+    const data = await leadsApi.getById(id);
+    return data.lead;
+  }, []);
 
-  const getLeadNotes = useCallback((leadId: string): Note[] => {
-    return notes
-      .filter(n => n.lead_id === leadId)
-      .map(n => ({ ...n, created_by_name: getUserName(n.created_by) }))
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-  }, [notes, getUserName]);
+  const getLeadNotes = useCallback(async (leadId: string): Promise<Note[]> => {
+    const data = await notesApi.getByLead(leadId);
+    return data.notes;
+  }, []);
 
-  const getLeadById = useCallback((id: string): Lead | undefined => {
-    return leads.find(l => l.id === id);
-  }, [leads]);
-
-  const value = useMemo(() => ({
-    leads,
-    notes,
-    addLead,
-    updateLead,
-    deleteLead,
-    addNote,
-    getLeadNotes,
-    getLeadById,
-    getUserName,
-  }), [leads, notes, addLead, updateLead, deleteLead, addNote, getLeadNotes, getLeadById, getUserName]);
+  const addNote = useCallback(async (leadId: string, content: string): Promise<Note> => {
+    const data = await notesApi.add(leadId, content);
+    return data.note;
+  }, []);
 
   return (
-    <LeadsContext.Provider value={value}>
+    <LeadsContext.Provider value={{
+      leads, loading, fetchLeads, addLead, updateLead,
+      deleteLead, addNote, getLeadNotes, getLeadById,
+    }}>
       {children}
     </LeadsContext.Provider>
   );

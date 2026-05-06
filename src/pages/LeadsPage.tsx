@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
@@ -15,8 +15,12 @@ import { users } from '@/utils/data';
 const LEADS_PER_PAGE = 5;
 
 export default function LeadsPage() {
-  const { leads, addLead, updateLead, deleteLead, getUserName } = useLeads();
+  const { leads, loading, fetchLeads, addLead, updateLead, deleteLead } = useLeads();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -65,22 +69,23 @@ export default function LeadsPage() {
     setModalOpen(true);
   }, []);
 
-  const handleSave = useCallback((data: Partial<Lead>) => {
+  const handleSave = useCallback(async (data: Partial<Lead>) => {
     if (editingLead) {
-      updateLead(editingLead.id, data);
+      await updateLead(editingLead.id, data);
     } else {
-      addLead(data as Omit<Lead, 'id' | 'created_at' | 'updated_at'>);
+      await addLead(data as Omit<Lead, 'id' | 'created_at' | 'updated_at'>);
     }
   }, [editingLead, addLead, updateLead]);
 
-  const handleDelete = useCallback((id: string) => {
-    deleteLead(id);
+  const handleDelete = useCallback(async (id: string) => {
+    await deleteLead(id);
     setDeleteConfirm(null);
   }, [deleteLead]);
 
-  const handleStatusChange = useCallback((id: string, status: string) => {
-    updateLead(id, { status });
+  const handleStatusChange = useCallback(async (id: string, status: string) => {
+    await updateLead(id, { status });
   }, [updateLead]);
+
 
   // Reset page on filter change
   const handleSearchChange = (v: string) => { setSearch(v); setPage(1); };
@@ -198,7 +203,7 @@ export default function LeadsPage() {
                         <Badge text={lead.lead_source} className={LEAD_SOURCE_CONFIG[lead.lead_source] || ''} />
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-300 hidden sm:table-cell">
-                        {getUserName(lead.assigned_to)}
+                        {lead.assigned_to_name || '-'}
                       </td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <StatusSelect value={lead.status} onChange={status => handleStatusChange(lead.id, status)} />

@@ -1,68 +1,54 @@
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Users, UserPlus, Target, Trophy, XCircle, DollarSign, TrendingUp } from 'lucide-react';
-import { useLeads } from '@/context/LeadsContext';
 import { useAuth } from '@/context/AuthContext';
+import { dashboardApi } from '@/services/api';
 import StatCard from '@/components/dashboard/StatCard';
 import PipelineBar from '@/components/dashboard/PipelineBar';
 import Badge from '@/components/ui/StatusBadge';
 import { STATUS_CONFIG } from '@/utils/statusColors';
 import { formatCurrency } from '@/utils/formatters';
+import type { DashboardStats, PipelineItem } from '@/types';
+
+interface RecentLead {
+  id: string;
+  lead_name: string;
+  company_name: string;
+  status: string;
+  deal_value: number;
+  created_at: string;
+}
+
+interface TopSalesperson {
+  name: string;
+  won_count: number;
+  won_value: number;
+}
 
 export default function DashboardPage() {
-  const { leads, getUserName } = useLeads();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const stats = useMemo(() => {
-    const total = leads.length;
-    const statusCounts: Record<string, number> = {};
-    let totalPipeline = 0;
-    let totalWon = 0;
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineItem[]>([]);
+  const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
+  const [topSalespeople, setTopSalespeople] = useState<TopSalesperson[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    leads.forEach(l => {
-      statusCounts[l.status] = (statusCounts[l.status] || 0) + 1;
-      totalPipeline += Number(l.deal_value) || 0;
-      if (l.status === 'Won') totalWon += Number(l.deal_value) || 0;
-    });
+  useEffect(() => {
+    dashboardApi.getStats().then(data => {
+      setStats(data.stats);
+      setPipeline(data.pipeline);
+      setRecentLeads(data.recent_leads);
+      setTopSalespeople(data.top_salespeople);
+    }).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
-    return {
-      total_leads: total,
-      new_leads: statusCounts['New'] || 0,
-      contacted_leads: statusCounts['Contacted'] || 0,
-      qualified_leads: statusCounts['Qualified'] || 0,
-      proposal_sent: statusCounts['Proposal Sent'] || 0,
-      won_leads: statusCounts['Won'] || 0,
-      lost_leads: statusCounts['Lost'] || 0,
-      total_pipeline_value: totalPipeline,
-      total_won_value: totalWon,
-    };
-  }, [leads]);
+  if (loading) {
+    return <div className="flex items-center justify-center h-64 text-slate-500">Loading dashboard...</div>;
+  }
 
-  const pipeline = useMemo(() => {
-    const map: Record<string, number> = {};
-    leads.forEach(l => { map[l.status] = (map[l.status] || 0) + 1; });
-    return Object.entries(map).map(([status, count]) => ({ status, count }));
-  }, [leads]);
-
-  const recentLeads = useMemo(() => {
-    return [...leads]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5);
-  }, [leads]);
-
-  const topSalespeople = useMemo(() => {
-    const map: Record<string, { name: string; won_count: number; won_value: number }> = {};
-    leads.forEach(l => {
-      if (l.status === 'Won' && l.assigned_to) {
-        const name = getUserName(l.assigned_to);
-        if (!map[name]) map[name] = { name, won_count: 0, won_value: 0 };
-        map[name].won_count += 1;
-        map[name].won_value += Number(l.deal_value) || 0;
-      }
-    });
-    return Object.values(map).sort((a, b) => b.won_value - a.won_value).slice(0, 5);
-  }, [leads, getUserName]);
+  if (!stats) return null;
 
   return (
     <div className="space-y-6">
@@ -129,12 +115,11 @@ export default function DashboardPage() {
               {topSalespeople.map((sp, i) => (
                 <div key={sp.name} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-700/30">
                   <div className="flex items-center gap-3">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                      i === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                      i === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' :
-                      i === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                      'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
-                    }`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                        i === 1 ? 'bg-slate-200 text-slate-600 dark:bg-slate-600 dark:text-slate-300' :
+                          i === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                            'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
+                      }`}>
                       {i + 1}
                     </div>
                     <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{sp.name}</p>

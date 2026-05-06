@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft, Pencil, Trash2, Send, Clock, DollarSign, Mail, Phone, Building2, User, Tag } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
@@ -15,7 +15,7 @@ import type { Lead, Note } from '@/types';
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { updateLead, deleteLead, getLeadNotes, addNote, getLeadById, getUserName } = useLeads();
+  const { updateLead, deleteLead, getLeadNotes, addNote, getLeadById } = useLeads();
   const { user } = useAuth();
 
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -23,8 +23,25 @@ export default function LeadDetailPage() {
   const [noteContent, setNoteContent] = useState('');
   const [addingNote, setAddingNote] = useState(false);
 
-  const lead = useMemo(() => getLeadById(id || ''), [id, getLeadById]);
-  const notes = useMemo(() => getLeadNotes(id || ''), [id, getLeadNotes]);
+  const [lead, setLead] = useState<Lead | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [pageLoading, setPageLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    setPageLoading(true);
+    Promise.all([
+      getLeadById(id),
+      getLeadNotes(id),
+    ]).then(([fetchedLead, fetchedNotes]) => {
+      setLead(fetchedLead || null);
+      setNotes(fetchedNotes);
+    }).catch(console.error).finally(() => setPageLoading(false));
+  }, [id, getLeadById, getLeadNotes]);
+
+  if (pageLoading) {
+    return <div className="flex items-center justify-center h-64 text-slate-500">Loading...</div>;
+  }
 
   if (!lead) {
     return (
@@ -37,23 +54,26 @@ export default function LeadDetailPage() {
     );
   }
 
-  const handleStatusChange = (status: string) => {
-    updateLead(lead.id, { status });
+  const handleStatusChange = async (status: string) => {
+    const updated = await updateLead(lead.id, { status });
+    if (updated) setLead(updated);
   };
 
-  const handleSaveEdit = (data: Partial<Lead>) => {
-    updateLead(lead.id, data);
+  const handleSaveEdit = async (data: Partial<Lead>) => {
+    const updated = await updateLead(lead.id, data);
+    if (updated) setLead(updated);
     setEditModalOpen(false);
   };
 
-  const handleDelete = () => {
-    deleteLead(lead.id);
+  const handleDelete = async () => {
+    await deleteLead(lead.id);
     navigate('/leads');
   };
 
-  const handleAddNote = () => {
-    if (!noteContent.trim() || !user) return;
-    addNote(lead.id, noteContent.trim(), user.id);
+  const handleAddNote = async () => {
+    if (!noteContent.trim()) return;
+    const newNote = await addNote(lead.id, noteContent.trim());
+    setNotes(prev => [newNote, ...prev]);
     setNoteContent('');
     setAddingNote(false);
   };
@@ -101,7 +121,7 @@ export default function LeadDetailPage() {
               <InfoRow icon={Phone} label="Phone" value={lead.phone} />
               <InfoRow icon={Building2} label="Company" value={lead.company_name} />
               <InfoRow icon={Tag} label="Source" value={<Badge text={lead.lead_source} className={LEAD_SOURCE_CONFIG[lead.lead_source] || ''} />} />
-              <InfoRow icon={User} label="Assigned To" value={getUserName(lead.assigned_to)} />
+              <InfoRow icon={User} label="Assigned To" value={lead.assigned_to_name || '-'} />
               <InfoRow icon={DollarSign} label="Deal Value" value={formatCurrency(lead.deal_value)} />
             </div>
           </Card>
