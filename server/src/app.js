@@ -17,11 +17,24 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS — only allow requests from your React frontend
+// CORS — supports both local dev and production
+const allowedOrigins = [
+    process.env.FRONTEND_URL,       // Production Vercel URL
+    'http://localhost:5173',         // Vite dev server
+    'http://localhost:3000',         // Alternative local port
+].filter(Boolean);
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (curl, Postman, mobile apps)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error(`CORS: origin ${origin} not allowed`));
+        }
+    },
     credentials: true,
 }));
+
 
 // Mount public routes BEFORE auth-protected routes
 app.use('/api/public', publicRoutes);
