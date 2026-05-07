@@ -73,6 +73,11 @@ export const notesApi = {
         }),
 };
 
+// Users
+export const usersApi = {
+    getAll: () => request<{ success: boolean; users: any[] }>('/api/users'),
+};
+
 // Dashboard
 export const dashboardApi = {
     getStats: () => request<any>('/api/dashboard/stats'),

@@ -16,3 +16,10 @@ exports.findById = async (id) => {
     );
     return rows[0] || null;
 };
+// Find all users — used by the "Assigned To" dropdown in the lead form
+exports.findAll = async () => {
+    const { rows } = await db.query(
+        'SELECT id, name, email, role FROM users ORDER BY name ASC'
+    );
+    return rows;
+};

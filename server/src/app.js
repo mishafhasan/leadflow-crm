@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth.routes');
 const leadsRoutes = require('./routes/leads.routes');
 const notesRoutes = require('./routes/notes.routes');
 const dashboardRoutes = require('./routes/dashboard.routes');
+const usersRoutes = require('./routes/users.routes');
 
 // Import global error handler
 const { errorHandler } = require('./middleware/errorHandler');
@@ -53,6 +54,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadsRoutes);
 app.use('/api', notesRoutes);   // notes are at /api/leads/:leadId/notes
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api', usersRoutes);    // users list at /api/users
 
 // 404 handler — catches requests to routes that don't exist
 app.use((req, res) => {

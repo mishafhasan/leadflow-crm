@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Save } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/ActionButton';
-import type { Lead } from '@/types';
-import { users } from '@/utils/data';
+import type { Lead, User } from '@/types';
+import { usersApi } from '@/services/api';
 
 const SOURCES = ['Website', 'LinkedIn', 'Referral', 'Cold Email', 'Event'];
 const STATUSES = ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Won', 'Lost'];
@@ -29,6 +29,16 @@ const emptyForm = {
 export default function LeadFormModal({ isOpen, onClose, onSave, lead }: LeadFormModalProps) {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Fetch real users from the database when the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      usersApi.getAll()
+        .then(data => setUsers(data.users))
+        .catch(console.error);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (lead) {
