@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
-import type { Lead } from '@/types';
+import type { Lead, User } from '@/types';
 import Button from '@/components/ui/ActionButton';
 import Badge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -10,16 +10,20 @@ import LeadFormModal from '@/components/leads/LeadFormModal';
 import StatusSelect from '@/components/leads/StatusSelect';
 import { STATUS_CONFIG, LEAD_SOURCE_CONFIG } from '@/utils/statusColors';
 import { formatCurrency, formatDate } from '@/utils/formatters';
-import { users } from '@/utils/data';
+import { usersApi } from '@/services/api';
 
 const LEADS_PER_PAGE = 5;
 
 export default function LeadsPage() {
   const { leads, fetchLeads, addLead, updateLead, deleteLead } = useLeads();
   const navigate = useNavigate();
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     fetchLeads();
+    usersApi.getAll()
+      .then(data => setUsers(data.users))
+      .catch(console.error);
   }, [fetchLeads]);
 
   // Filter state
