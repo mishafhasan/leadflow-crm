@@ -65,6 +65,12 @@ export const notesApi = {
             method: 'POST',
             body: JSON.stringify({ content }),
         }),
+
+    // AI note summariser — calls Gemma 4 via backend
+    summarise: (leadId: string) =>
+        request<{ success: boolean; summary: string }>(`/api/leads/${leadId}/notes/summary`, {
+            method: 'POST',
+        }),
 };
 
 // Dashboard

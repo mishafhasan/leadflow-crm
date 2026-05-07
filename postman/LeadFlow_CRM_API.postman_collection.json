@@ -474,7 +474,60 @@
 			]
 		},
 		{
-			"name": "Test 10 — Dashboard Stats",
+			"name": "Test 10 — AI Summarise Notes",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{base_url}}/api/leads/{{lead_id}}/notes/summary",
+					"host": ["{{base_url}}"],
+					"path": ["api", "leads", "{{lead_id}}", "notes", "summary"]
+				}
+			},
+			"response": [],
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response is successful', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.success).to.be.true;",
+							"});",
+							"",
+							"pm.test('Summary string is returned', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.summary).to.be.a('string').and.not.empty;",
+							"});",
+							"",
+							"pm.test('Summary contains expected section headers', function () {",
+							"    const json = pm.response.json();",
+							"    pm.expect(json.summary).to.include('Overall Status');",
+							"    pm.expect(json.summary).to.include('Key Points');",
+							"    pm.expect(json.summary).to.include('Customer Sentiment');",
+							"    pm.expect(json.summary).to.include('Suggested Next Action');",
+							"});"
+						]
+					}
+				}
+			]
+		},
+		{
+			"name": "Test 11 — Dashboard Stats",
 			"request": {
 				"method": "GET",
 				"header": [

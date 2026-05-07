@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { ArrowLeft, Pencil, Trash2, Send, Clock, DollarSign, Mail, Phone, Building2, User, Tag } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, Send, Clock, DollarSign, Mail, Phone, Building2, User, Tag, Sparkles, Loader2 } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
 import Button from '@/components/ui/ActionButton';
 import Badge from '@/components/ui/StatusBadge';
@@ -9,6 +9,7 @@ import LeadFormModal from '@/components/leads/LeadFormModal';
 import StatusSelect from '@/components/leads/StatusSelect';
 import { STATUS_CONFIG, LEAD_SOURCE_CONFIG } from '@/utils/statusColors';
 import { formatCurrency, formatDateTime, formatRelativeTime } from '@/utils/formatters';
+import { notesApi } from '@/services/api';
 import type { Lead, Note } from '@/types';
 
 export default function LeadDetailPage() {
@@ -19,6 +20,11 @@ export default function LeadDetailPage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [noteContent, setNoteContent] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summarising, setSummarising] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryCooldown, setSummaryCooldown] = useState(false); // rate-limit guard
 
   const [lead, setLead] = useState<Lead | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -75,6 +81,28 @@ export default function LeadDetailPage() {
     setAddingNote(false);
   };
 
+  const handleSummarise = async () => {
+    setSummarising(true);
+    setSummaryError(null);
+    setSummary(null);
+    try {
+      const data = await notesApi.summarise(lead.id);
+      setSummary(data.summary);
+      // Apply 60s cooldown to respect free tier rate limits (~2 RPM for Gemma)
+      setSummaryCooldown(true);
+      setTimeout(() => setSummaryCooldown(false), 60_000);
+    } catch (err: any) {
+      const msg = err?.message || 'Failed to generate summary.';
+      setSummaryError(
+        msg.includes('429') || msg.includes('rate limit')
+          ? 'Rate limit reached — please wait 1 minute before trying again.'
+          : msg
+      );
+    } finally {
+      setSummarising(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Back button */}
@@ -125,9 +153,30 @@ export default function LeadDetailPage() {
 
           {/* Notes Section */}
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-4">
-              Notes ({notes.length})
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                Notes ({notes.length})
+              </h2>
+              {notes.length > 0 && (
+                <button
+                  onClick={handleSummarise}
+                  disabled={summarising || summaryCooldown}
+                  title={summaryCooldown ? 'Please wait ~1 minute between AI requests (free tier limit)' : ''}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg
+                             bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400
+                             hover:bg-violet-100 dark:hover:bg-violet-900/30
+                             border border-violet-200 dark:border-violet-800
+                             disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {summarising
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Summarising...</>
+                    : summaryCooldown
+                      ? <><Sparkles className="w-4 h-4" /> Cooling down...</>
+                      : <><Sparkles className="w-4 h-4" /> AI Summary</>
+                  }
+                </button>
+              )}
+            </div>
 
             {notes.length === 0 ? (
               <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
@@ -138,6 +187,45 @@ export default function LeadDetailPage() {
                 {notes.map((note, i) => (
                   <NoteItem key={note.id} note={note} isLast={i === notes.length - 1} />
                 ))}
+              </div>
+            )}
+
+            {/* AI summary error */}
+            {summaryError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400 flex items-start justify-between gap-2">
+                <span>{summaryError}</span>
+                <button onClick={() => setSummaryError(null)} className="text-red-400 hover:text-red-600 shrink-0">×</button>
+              </div>
+            )}
+
+            {/* AI summary result */}
+            {summary && (
+              <div className="mb-6 p-4 rounded-xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <span className="text-sm font-semibold text-violet-800 dark:text-violet-300">AI Summary</span>
+                    <span className="text-xs text-violet-500 px-2 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900/30">
+                      Gemma 4
+                    </span>
+                  </div>
+                  <button onClick={() => setSummary(null)} className="text-violet-400 hover:text-violet-600 dark:hover:text-violet-300 text-lg leading-none">×</button>
+                </div>
+                {/* Render markdown bold + line breaks without a markdown library */}
+                <div className="text-sm text-slate-700 dark:text-slate-300 space-y-1 leading-relaxed">
+                  {summary.split('\n').map((line, i) => {
+                    if (!line.trim()) return <div key={i} className="h-1" />;
+                    const isBold = line.startsWith('**') && line.endsWith('**');
+                    const parts = line.split(/\*\*(.*?)\*\*/g);
+                    return (
+                      <p key={i} className={isBold ? 'font-semibold text-slate-800 dark:text-slate-100 mt-3 first:mt-0' : ''}>
+                        {parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part)}
+                      </p>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
